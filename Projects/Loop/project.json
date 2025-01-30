@@ -1,0 +1,210 @@
+{
+    "targets": [
+        {
+            "isStage": true,
+            "name": "Stage",
+            "variables": {
+                "`jEk@4|i[#Fk?(8x)AV.-my variable": [
+                    "my variable",
+                    1000000
+                ]
+            },
+            "lists": {},
+            "broadcasts": {},
+            "blocks": {},
+            "comments": {},
+            "currentCostume": 0,
+            "costumes": [
+                {
+                    "name": "backdrop1",
+                    "dataFormat": "svg",
+                    "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+                    "md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+                    "rotationCenterX": 240,
+                    "rotationCenterY": 180
+                }
+            ],
+            "sounds": [],
+            "volume": 100,
+            "layerOrder": 0,
+            "tempo": 60,
+            "videoTransparency": 50,
+            "videoState": "on",
+            "textToSpeechLanguage": null
+        },
+        {
+            "isStage": false,
+            "name": "Sprite1",
+            "variables": {},
+            "lists": {},
+            "broadcasts": {},
+            "blocks": {
+                "e": {
+                    "opcode": "event_whenflagclicked",
+                    "next": "b",
+                    "parent": null,
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": true,
+                    "x": -1058,
+                    "y": -691
+                },
+                "h": {
+                    "opcode": "looks_say",
+                    "next": null,
+                    "parent": null,
+                    "inputs": {
+                        "MESSAGE": [
+                            1,
+                            [
+                                1,
+                                "Hello world!"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": true,
+                    "x": -1286,
+                    "y": -582
+                },
+                "a": {
+                    "opcode": "control_repeat",
+                    "next": "d",
+                    "parent": "c",
+                    "inputs": {
+                        "TIMES": [
+                            1,
+                            [
+                                6,
+                                "1000000"
+                            ]
+                        ],
+                        "SUBSTACK": [
+                            2,
+                            "f"
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false
+                },
+                "b": {
+                    "opcode": "data_setvariableto",
+                    "next": "c",
+                    "parent": "e",
+                    "inputs": {
+                        "VALUE": [
+                            1,
+                            [
+                                10,
+                                "0"
+                            ]
+                        ]
+                    },
+                    "fields": {
+                        "VARIABLE": [
+                            "my variable",
+                            "`jEk@4|i[#Fk?(8x)AV.-my variable"
+                        ]
+                    },
+                    "shadow": false,
+                    "topLevel": false
+                },
+                "f": {
+                    "opcode": "data_changevariableby",
+                    "next": null,
+                    "parent": "a",
+                    "inputs": {
+                        "VALUE": [
+                            1,
+                            [
+                                4,
+                                "1"
+                            ]
+                        ]
+                    },
+                    "fields": {
+                        "VARIABLE": [
+                            "my variable",
+                            "`jEk@4|i[#Fk?(8x)AV.-my variable"
+                        ]
+                    },
+                    "shadow": false,
+                    "topLevel": false
+                },
+                "d": {
+                    "opcode": "looks_say",
+                    "next": null,
+                    "parent": "a",
+                    "inputs": {
+                        "MESSAGE": [
+                            3,
+                            "g",
+                            [
+                                10,
+                                "Hello!"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false
+                },
+                "c": {
+                    "opcode": "sensing_resettimer",
+                    "next": "a",
+                    "parent": "b",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false
+                },
+                "g": {
+                    "opcode": "sensing_timer",
+                    "next": null,
+                    "parent": "d",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false
+                }
+            },
+            "comments": {},
+            "currentCostume": 0,
+            "costumes": [
+                {
+                    "name": "costume1",
+                    "bitmapResolution": 1,
+                    "dataFormat": "svg",
+                    "assetId": "927d672925e7b99f7813735c484c6922",
+                    "md5ext": "927d672925e7b99f7813735c484c6922.svg",
+                    "rotationCenterX": 30.74937882782359,
+                    "rotationCenterY": 58.864768144346826
+                }
+            ],
+            "sounds": [],
+            "volume": 100,
+            "layerOrder": 1,
+            "visible": true,
+            "x": 0,
+            "y": 0,
+            "size": 100,
+            "direction": 90,
+            "draggable": false,
+            "rotationStyle": "all around"
+        }
+    ],
+    "monitors": [],
+    "extensions": [],
+    "meta": {
+        "semver": "3.0.0",
+        "vm": "0.2.0",
+        "agent": "",
+        "platform": {
+            "name": "TurboWarp",
+            "url": "https://turbowarp.org/"
+        }
+    }
+}

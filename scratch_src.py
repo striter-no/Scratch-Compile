@@ -28,9 +28,76 @@ class Costume:
         
         return o
 
+'''
+https://github.com/scratchfoundation/scratch-vm/blob/develop/src/serialization/sb3.js
+
+const MATH_NUM_PRIMITIVE = 4; // there's no reason these constants can't collide
+// math_positive_number
+const POSITIVE_NUM_PRIMITIVE = 5; // with the above, but removing duplication for clarity
+// math_whole_number
+const WHOLE_NUM_PRIMITIVE = 6;
+// math_integer
+const INTEGER_NUM_PRIMITIVE = 7;
+// math_angle
+const ANGLE_NUM_PRIMITIVE = 8;
+// colour_picker
+const COLOR_PICKER_PRIMITIVE = 9;
+// text
+const TEXT_PRIMITIVE = 10;
+// event_broadcast_menu
+const BROADCAST_PRIMITIVE = 11;
+// data_variable
+const VAR_PRIMITIVE = 12;
+// data_listcontents
+const LIST_PRIMITIVE = 13;
+
+// Map block opcodes to the above primitives and the name of the field we can use
+// to find the value of the field
+const primitiveOpcodeInfoMap = {
+    math_number: [MATH_NUM_PRIMITIVE, 'NUM'],
+    math_positive_number: [POSITIVE_NUM_PRIMITIVE, 'NUM'],
+    math_whole_number: [WHOLE_NUM_PRIMITIVE, 'NUM'],
+    math_integer: [INTEGER_NUM_PRIMITIVE, 'NUM'],
+    math_angle: [ANGLE_NUM_PRIMITIVE, 'NUM'],
+    colour_picker: [COLOR_PICKER_PRIMITIVE, 'COLOUR'],
+    text: [TEXT_PRIMITIVE, 'TEXT'],
+    event_broadcast_menu: [BROADCAST_PRIMITIVE, 'BROADCAST_OPTION'],
+    data_variable: [VAR_PRIMITIVE, 'VARIABLE'],
+    data_listcontents: [LIST_PRIMITIVE, 'LIST']
+};
+'''
+
+class VariableType:
+    def __init__(self, name: (str | None) = None, constant: (int | None) = None) -> None:
+        constants = {
+            "math_num_primitive": 4,
+            "math_positive_number": 5,
+            "math_whole_number": 6,
+            "math_integer": 7,
+            "math_angle": 8,
+            "colour_picker": 9,
+            "text": 10,
+            "event_broadcast_menu": 11,
+            "data_variable": 12,
+            "data_listcontents": 13,
+        }
+
+        self._data = name
+        
+        self.name = name
+        self.number_constant = constant
+
+        if not (name is None):
+            self.number_constant = constants[name]
+        elif not (constant is None):
+            self.name = list(constants.keys())[list(constants.values()).index(constant)]
+        else:
+            raise ValueError(f"Unknown variable type: ({name}/{constant})")
+
 class Variable:
     def __init__(self, data: list) -> None:
         self._data = data
+        self.type: VariableType = VariableType(constant=data[0][0])
         self.name: str = data[0]
         self.value: float = data[1]
     
@@ -204,6 +271,10 @@ class ScratchProject:
         }
     
     def load(self) -> None:
+        self.meta = self._json_data["meta"]
+        self.extensions = self._json_data["extensions"]
+        self.monitors = self._json_data["monitors"]
+
         for target in self._json_data["targets"]:
             self.targets.append(ProjectTarget(target))
 

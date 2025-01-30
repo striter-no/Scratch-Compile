@@ -9,7 +9,7 @@ def get_root(block_from: str, blocks: dict[str, scratch.Block]):
 
 if __name__ == "__main__":
     project = scratch.ScratchProject(
-        "./Project/Hello world/project.json"
+        "./Project/Loop/project.json"
     )
 
     project.load()
@@ -26,6 +26,8 @@ if __name__ == "__main__":
     tab_level = 0
     for name, cmd in cmds.items():
         
+        print(name, cmd)
+
         if cmd[1] is None:
             program[name] = []
 
