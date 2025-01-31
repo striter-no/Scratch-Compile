@@ -1,7 +1,19 @@
 import json as jn
 
-def str_all(inp_list: list) -> list[str]:
+def list_str_all(inp_list: list) -> list[str]:
     return [str(i) for i in inp_list]
+
+def dict_str_all(inp_dict: dict) -> dict:
+    return {str(k): str(v) for k, v in inp_dict.items()}
+
+class BlockId:
+    def __init__(self, data: str) -> None:
+        self._data = data
+
+        self.id = data
+    
+    def __str__(self) -> str:
+        return f"{self.id}"
 
 class Costume:
     def __init__(self, data: dict, isStage: bool) -> None:
@@ -12,6 +24,7 @@ class Costume:
         self.md5ext: str = data["md5ext"]
         self.rotationCenterX: float = data["rotationCenterX"]
         self.rotationCenterY: float = data["rotationCenterY"]
+        self.isStage = isStage
         if not isStage:
             self.bitmapResolution: int = data["bitmapResolution"]
 
@@ -23,50 +36,36 @@ class Costume:
         o += f"\n\tmd5ext = {self.md5ext}"
         o += f"\n\trotationCenterX = {self.rotationCenterX}"
         o += f"\n\trotationCenterY = {self.rotationCenterY}"
-        if not self._isStage:
+        if not self.isStage:
             o += f"\n\tbitmapResolution = {self.bitmapResolution}"
         
         return o
 
-'''
-https://github.com/scratchfoundation/scratch-vm/blob/develop/src/serialization/sb3.js
+"""
+Info from https://github.com/scratchfoundation/scratch-vm/blob/develop/test/unit/engine_adapter.js
+"""
+class Substack:
+    def __init__(self, data: list):
+        self._data = data
+        self.branchShadowId: int = data[0]
+        self.branchBlockId: BlockId = BlockId(data[1])
+        self.value = None # For compability
 
-const MATH_NUM_PRIMITIVE = 4; // there's no reason these constants can't collide
-// math_positive_number
-const POSITIVE_NUM_PRIMITIVE = 5; // with the above, but removing duplication for clarity
-// math_whole_number
-const WHOLE_NUM_PRIMITIVE = 6;
-// math_integer
-const INTEGER_NUM_PRIMITIVE = 7;
-// math_angle
-const ANGLE_NUM_PRIMITIVE = 8;
-// colour_picker
-const COLOR_PICKER_PRIMITIVE = 9;
-// text
-const TEXT_PRIMITIVE = 10;
-// event_broadcast_menu
-const BROADCAST_PRIMITIVE = 11;
-// data_variable
-const VAR_PRIMITIVE = 12;
-// data_listcontents
-const LIST_PRIMITIVE = 13;
+"""
+Info from https://github.com/scratchfoundation/scratch-vm/blob/develop/src/engine/scratch-blocks-constants.js
+"""
+class BlockType:
+    def __init__(self, constant: int) -> None:
+        self._data = constant
+        self.constant: int = constant
 
-// Map block opcodes to the above primitives and the name of the field we can use
-// to find the value of the field
-const primitiveOpcodeInfoMap = {
-    math_number: [MATH_NUM_PRIMITIVE, 'NUM'],
-    math_positive_number: [POSITIVE_NUM_PRIMITIVE, 'NUM'],
-    math_whole_number: [WHOLE_NUM_PRIMITIVE, 'NUM'],
-    math_integer: [INTEGER_NUM_PRIMITIVE, 'NUM'],
-    math_angle: [ANGLE_NUM_PRIMITIVE, 'NUM'],
-    colour_picker: [COLOR_PICKER_PRIMITIVE, 'COLOUR'],
-    text: [TEXT_PRIMITIVE, 'TEXT'],
-    event_broadcast_menu: [BROADCAST_PRIMITIVE, 'BROADCAST_OPTION'],
-    data_variable: [VAR_PRIMITIVE, 'VARIABLE'],
-    data_listcontents: [LIST_PRIMITIVE, 'LIST']
-};
-'''
+        self.out_hex = constant == 1
+        self.out_round = constant == 2
+        self.out_square = constant == 3
 
+"""
+Info from https://github.com/scratchfoundation/scratch-vm/blob/develop/src/serialization/sb3.js
+"""
 class VariableType:
     def __init__(self, name: (str | None) = None, constant: (int | None) = None) -> None:
         constants = {
@@ -87,6 +86,8 @@ class VariableType:
         self.name = name
         self.number_constant = constant
 
+        print(f"serializing {name}/{constant}")
+
         if not (name is None):
             self.number_constant = constants[name]
         elif not (constant is None):
@@ -96,8 +97,8 @@ class VariableType:
 
 class Variable:
     def __init__(self, data: list) -> None:
+        print(f"getting variable: {data}")
         self._data = data
-        self.type: VariableType = VariableType(constant=data[0][0])
         self.name: str = data[0]
         self.value: float = data[1]
     
@@ -121,13 +122,37 @@ class List:
         
         return o
 
+class Input:
+    def __init__(self, data: list) -> None:
+        self._data = data
+        print(f"getting input: {data}")
+        self.output_shape: BlockType = BlockType(constant=data[0])
+        self.outgoing_branch: (BlockId | None) = None
+        self.value: (str | None) = None
+        if len(data) == 2:
+            self.input_type: VariableType = VariableType(constant=data[1][0])
+            self.value = data[1][1]
+        else:
+            self.outgoing_branch = BlockId(data[1])
+
+    def __str__(self) -> str:
+        o = "Input:"
+        o += f"\n\toutput_shape = {self.outgoing_branch}"
+        o += f"\n\toutgoing_branch = {self.outgoing_branch}"
+        if self.outgoing_branch is None:
+            o += f"\n\tinput_type = {self.input_type}"
+
+        o += f"\n\tvalue = {self.value}"
+
+        return o
+
 class Block:
     def __init__(self, data: dict) -> None:
         self._data = data
         
         self.opcode: str = data["opcode"]
-        self.next: str = data["next"]
-        self.parent: str = data["parent"]
+        self.next: (BlockId | None) = BlockId(data["next"]) if BlockId(data["next"]) else None
+        self.parent: (BlockId | None) = BlockId(data["parent"]) if BlockId(data["parent"]) else None
         self.shadow: bool = data["shadow"]
         self.topLevel: bool = data["topLevel"]
 
@@ -139,10 +164,13 @@ class Block:
             self.isTop = True
 
         self.fields: list[str] = data["fields"]
-        self.inputs: dict[str, Input] = {} # Filled in later
+        self.inputs: dict[str, (Input | Substack)] = {} # Filled in later
 
         for name, raw_input in data["inputs"].items():
-            self.inputs[name] = Input(raw_input)
+            if name.lower() == "substack":
+                self.inputs[name] = Substack(raw_input)
+            else:
+                self.inputs[name] = Input(raw_input)
 
     def __str__(self) -> str:
 
@@ -156,22 +184,6 @@ class Block:
         o += f"\n\ttopLevel = {self.topLevel}"
         o += f"\n\tisTop = {self.isTop}"
         o += f"\n\tinputs = {parsed_inputs}"
-
-        return o
-
-class Input:
-    def __init__(self, data: list) -> None:
-        self._data = data
-
-        self.__undef_num_0: int = data[0]
-        self.__undef_num_1: int = data[1][0]
-        self.value: str = data[1][1]
-
-    def __str__(self) -> None:
-        o = "Input:"
-        o += f"\n\t__undef_num_0 = {self.__undef_num_0}"
-        o += f"\n\t__undef_num_1 = {self.__undef_num_1}"
-        o += f"\n\tvalue = {self.value}"
 
         return o
 
@@ -200,7 +212,7 @@ class ProjectTarget:
 
         self.variables: dict[str, Variable] = {} # Y | Filled in later
         self.lists: dict[str, List] = {} # Y | Filled in later
-        self.costumes: dict[str, Costume] = [] # Y | Filled in later
+        self.costumes: list[Costume] = [] # Y | Filled in later
         self.blocks: dict[str, Block] = {} # Y | Filled in later
         self.sounds = [] # X | Filled in later
         self.broadcasts = {} # X | Filled in later
@@ -208,18 +220,18 @@ class ProjectTarget:
         self.comments = {} # In TODO
 
 
-        for raw_var in data["variables"]:
-            self.variables[raw_var] = Variable(data["variables"][raw_var])
+        for var_id in data["variables"]:
+            self.variables[var_id] = Variable(data["variables"][var_id])
         
-        for raw_list in data["lists"]:
-            self.lists[raw_list] = Variable(data["lists"][raw_list])
+        for list_id in data["lists"]:
+            self.lists[list_id] = List(data["lists"][list_id])
 
-        for raw_block in data["blocks"]:
-            self.blocks[raw_block] = Block(data["blocks"][raw_block])
+        for block_id in data["blocks"]:
+            self.blocks[block_id] = Block(data["blocks"][block_id])
 
         # print(data["costumes"])
-        for raw_costume in data["costumes"]:
-            self.costumes.append(Costume(raw_costume, self.isStage))
+        for costume_id in data["costumes"]:
+            self.costumes.append(Costume(costume_id, self.isStage))
 
     def __str__(self) -> str:
         o = "Target:"
@@ -243,10 +255,10 @@ class ProjectTarget:
             o += f"\n\tdraggable = {self.draggable}"
             o += f"\n\trotationStyle = {self.rotationStyle}"
 
-        o += f"\n\tvariables = {str_all(self.variables)}"
-        o += f"\n\tlists = {str_all(self.lists)}"
-        o += f"\n\tcostumes = {str_all(self.costumes)}"
-        o += f"\n\tblocks = {str_all(self.blocks)}"
+        o += f"\n\tvariables = {dict_str_all(self.variables)}"
+        o += f"\n\tlists = {dict_str_all(self.lists)}"
+        o += f"\n\tcostumes = {list_str_all(self.costumes)}"
+        o += f"\n\tblocks = {dict_str_all(self.blocks)}"
         o += f"\n\tsounds = {self.sounds}"
         o += f"\n\tbroadcasts = {self.broadcasts}"
 
@@ -280,3 +292,12 @@ class ScratchProject:
 
     def compile(self, path: str) -> None:
         pass
+
+class MassStorage:
+    def __init__(self) -> None:
+        self.opcodes: dict[str, list[str]] = {}
+    
+    def load_opcodes(self, path: str) -> None:
+        self.opcodes = jn.load(open(path))
+
+massStorage = MassStorage()
