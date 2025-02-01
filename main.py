@@ -35,14 +35,15 @@ if __name__ == "__main__":
             
     for block_id, cmd in cmds.items():
         print(f"{block_id} : {cmd}")
-        
+
+
     tab_level = 0
     compiled = {}
 
     for name, programs in program.items():
         compiled[name] = ""
-        for command in programs:
-            compiled[name] += '\t'*command[1] + command[0] + '\n'
+        for cmd in programs:
+            compiled[name] += '\t'*cmd[1] + cmd[0] + '\n'
     
     for name, code in compiled.items():
         with open("./compiled/generated.py", "w") as f:

@@ -204,6 +204,16 @@ class Block:
         for name, raw_field in data["fields"].items():
             self.fields[name] = Field(raw_field, name)
 
+    def get_root(self, blocks: dict[BlockId, object], from_block: (BlockId | None) = None) -> object:
+        obj = self if from_block is None else blocks[from_block]
+        if obj.id is None:
+            return None
+        if blocks[obj.id].parent is None:
+            return obj.id
+        
+        root = obj.get_root(blocks, from_block=blocks[obj.id].parent)
+        return root
+
     def __str__(self) -> str:
 
         parsed_inputs = {i: str(self.inputs[i]) for i in self.inputs}
@@ -290,23 +300,13 @@ class ProjectTarget:
         start_points = set()
 
         for id, cmd in blocks.items():
-            root = self.get_root(
-                id,
-                blocks
-            )
+            root = blocks[id].get_root(blocks)
             if not (root is None):
                 start_points.add(root)
 
         return list(start_points)
 
-    def get_root(self, block_from: (BlockId | None), blocks: dict[BlockId, Block]):
-        if block_from is None:
-            return None
-        if blocks[block_from].parent is None:
-            return block_from
-        
-        root = self.get_root(blocks[block_from].parent, blocks)
-        return root
+    
 
     def __str__(self) -> str:
         o = "Target:"
