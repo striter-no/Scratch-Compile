@@ -224,18 +224,19 @@ class Branch:
         self._data = {"root":root, "blocks": blocks}
         self.all_blocks = blocks
         
-        self.branch: dict[BlockId, list[BlockId]] = {root: []}
-        
-        for bid, block in blocks.items():
-            parent = block.parent
-            if parent is None:
-                continue
-            
-            if parent in self.branch:
-                self.branch[parent].append(bid)
-                if not (bid in self.branch):
-                    self.branch[bid] = []
+        self.branch: dict[BlockId, set[BlockId]] = {root: set()}
 
+        for i in range(len(set(list(blocks.keys())))):
+            for bid, block in blocks.items():
+                parent = block.parent
+                if parent is None:
+                    continue
+                
+                if parent in self.branch:
+                    self.branch[parent].add(bid)
+                    if not (bid in self.branch):
+                        self.branch[bid] = set()
+            
 class ProjectTarget:
     def __init__(self, data: dict) -> None:
         self._data = data

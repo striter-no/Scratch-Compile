@@ -1,6 +1,13 @@
 from scratch_src import massStorage
 import scratch_src as scratch
 
+def command(block: scratch.Block) -> tuple[tuple[str | None, int | None], scratch.BlockId, list[str | None]]:
+    return (
+        block.opcode.tokenize(), 
+        block.id,
+        [i.value for i in block.inputs.values()]
+    )
+
 if __name__ == "__main__":
     massStorage.load_opcodes("./assets/opcodes.json")
     project = scratch.ScratchProject(
@@ -10,47 +17,26 @@ if __name__ == "__main__":
     project.load()
     
     sprite = project.targets[1]
-    
     blocks = sprite.blocks
-    cmds = {}
-    program = {}
-
-    for name, block in blocks.items():
-        cmds[name] = (
-            block.opcode.tokenize(), 
-            block.id,
-            [i.value for i in block.inputs.values()]
-        )
-    
     starts = sprite.roots
     branch = sprite.branches[starts[0]]
 
-    print(scratch.list_str_all(starts))
-    print(scratch.dict_str_all(branch.branch))
+    cmds = {}
+    program = {}
 
-    for id, block in branch.branch.items():
-        print(f"Parent: {id}")
-        for i in block:
-            print(f"\tchild: {i}")
-
-    tab_level = 0
-    for name, cmd in cmds.items():
+    for parent_id, block in branch.branch.items():
+        cmds[parent_id] = command(
+            branch.all_blocks[parent_id]
+        )
+        for child_id in block:
+            cmds[child_id] = command(
+                branch.all_blocks[child_id]
+            )
+            
+    for block_id, cmd in cmds.items():
+        print(f"{block_id} : {cmd}")
         
-        print(name, cmd)
-
-        # if cmd[1] is None:
-        #     program[name] = []
-
-        # if cmd[0] == "event_whenflagclicked":
-        #     program[get_root(name, blocks)].append(
-        #         ("def main():", tab_level)
-        #     )
-        #     tab_level += 1
-        # elif cmd[0] == "looks_say":
-        #     program[get_root(name, blocks)].append(
-        #         ("print(f\"{[" + ','.join([f'"{i}"' for i in cmd[2]]) + "]}\")", tab_level)
-        #     )
-    
+    tab_level = 0
     compiled = {}
 
     for name, programs in program.items():
@@ -65,6 +51,18 @@ if __name__ == "__main__":
 
             f.write("\nif __name__ == \"__main__\":\n\tmain()")
 
+# if cmd[1] is None:
+#     program[name] = []
+
+# if cmd[0] == "event_whenflagclicked":
+#     program[get_root(name, blocks)].append(
+#         ("def main():", tab_level)
+#     )
+#     tab_level += 1
+# elif cmd[0] == "looks_say":
+#     program[get_root(name, blocks)].append(
+#         ("print(f\"{[" + ','.join([f'"{i}"' for i in cmd[2]]) + "]}\")", tab_level)
+#     )
 
 # class Queue:
 #     def __init__(self):

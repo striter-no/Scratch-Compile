@@ -72,15 +72,6 @@
                     "shadow": false,
                     "topLevel": false
                 },
-                "c": {
-                    "opcode": "sensing_resettimer",
-                    "next": "a",
-                    "parent": "b",
-                    "inputs": {},
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false
-                },
                 "a": {
                     "opcode": "control_repeat",
                     "next": "d",
@@ -98,6 +89,15 @@
                             "f"
                         ]
                     },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false
+                },
+                "c": {
+                    "opcode": "sensing_resettimer",
+                    "next": "a",
+                    "parent": "b",
+                    "inputs": {},
                     "fields": {},
                     "shadow": false,
                     "topLevel": false
