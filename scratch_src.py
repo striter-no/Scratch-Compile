@@ -246,7 +246,16 @@ class Branch:
                     self.branch[parent].add(bid)
                     if not (bid in self.branch):
                         self.branch[bid] = set()
-            
+    
+    def distance_to_root(self, block_id: BlockId) -> int:
+        o = 0
+        root = self._data["root"]
+        for parent_id, block in self.branch.items():
+            o += 1
+            for child_id in block:
+                if child_id == block_id:
+                    return o
+
 class ProjectTarget:
     def __init__(self, data: dict) -> None:
         self._data = data
@@ -305,8 +314,6 @@ class ProjectTarget:
                 start_points.add(root)
 
         return list(start_points)
-
-    
 
     def __str__(self) -> str:
         o = "Target:"

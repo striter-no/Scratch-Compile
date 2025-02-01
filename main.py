@@ -24,6 +24,9 @@ if __name__ == "__main__":
     cmds = {}
     program = {}
 
+    tab_level = 0
+    compiled = []
+
     for parent_id, block in branch.branch.items():
         cmds[parent_id] = command(
             branch.all_blocks[parent_id]
@@ -32,13 +35,12 @@ if __name__ == "__main__":
             cmds[child_id] = command(
                 branch.all_blocks[child_id]
             )
-            
+            print(
+                branch.distance_to_root(child_id), str(child_id)
+            )
+
     for block_id, cmd in cmds.items():
         print(f"{block_id} : {cmd}")
-
-
-    tab_level = 0
-    compiled = {}
 
     for name, programs in program.items():
         compiled[name] = ""
