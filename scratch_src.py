@@ -10,10 +10,33 @@ class BlockId:
     def __init__(self, data: str) -> None:
         self._data = data
 
-        self.id = data
+        self.id: str = data
     
+    def __hash__(self) -> int:
+        return hash(self._data)
+
+    def __eq__(self, value) -> bool:
+        return type(value).__name__ == "BlockId" and (self.id == value.id)
+
     def __str__(self) -> str:
         return f"{self.id}"
+
+class Opcode:
+    def __init__(self, data: (str | None) = None, module: (str | None) = None, full_str: (str | None) = None) -> None:
+        self._data = {"value": data, "module": module, "full_str": full_str}
+
+        if not (full_str is None):
+            self.value: (str | None) = full_str
+            self.module: (str | None) = full_str[:full_str.index('_')]
+        else:
+            self.value: (str | None) = data
+            self.module: (str | None) = module
+
+    def tokenize(self) -> tuple[(str | None), (int | None)]:
+        return self.module, None if (self.value and self.module) is None else int(massStorage.opcodes[self.module].index(self.value))
+
+    def __str__(self) -> str:
+        return f"{self.module}_{self.value}"
 
 class Costume:
     def __init__(self, data: dict, isStage: bool) -> None:
@@ -86,8 +109,6 @@ class VariableType:
         self.name = name
         self.number_constant = constant
 
-        print(f"serializing {name}/{constant}")
-
         if not (name is None):
             self.number_constant = constants[name]
         elif not (constant is None):
@@ -97,7 +118,7 @@ class VariableType:
 
 class Variable:
     def __init__(self, data: list) -> None:
-        print(f"getting variable: {data}")
+        
         self._data = data
         self.name: str = data[0]
         self.value: float = data[1]
@@ -122,10 +143,17 @@ class List:
         
         return o
 
+class Field:
+    def __init__(self, data: list, id: str) -> None:
+        self._data = {"data": data, "id": id}
+        
+        self.name = id # name of argument
+        self.value = data # link to actual data
+
 class Input:
     def __init__(self, data: list) -> None:
         self._data = data
-        print(f"getting input: {data}")
+        
         self.output_shape: BlockType = BlockType(constant=data[0])
         self.outgoing_branch: (BlockId | None) = None
         self.value: (str | None) = None
@@ -147,23 +175,24 @@ class Input:
         return o
 
 class Block:
-    def __init__(self, data: dict) -> None:
+    def __init__(self, data: dict, id: str) -> None:
         self._data = data
-        
-        self.opcode: str = data["opcode"]
-        self.next: (BlockId | None) = BlockId(data["next"]) if BlockId(data["next"]) else None
-        self.parent: (BlockId | None) = BlockId(data["parent"]) if BlockId(data["parent"]) else None
+
+        self.opcode: Opcode = Opcode(full_str=data["opcode"])
+        self.next: (BlockId | None) = BlockId(data["next"]) if data["next"] else None
+        self.parent: (BlockId | None) = BlockId(data["parent"]) if data["parent"] else None
         self.shadow: bool = data["shadow"]
         self.topLevel: bool = data["topLevel"]
 
         self.isTop = False
+        self.id = BlockId(id)
 
         if "x" in data:
             self.x: float = data["x"]
             self.y: float = data["y"]
             self.isTop = True
 
-        self.fields: list[str] = data["fields"]
+        self.fields: dict[str, Field] = {}
         self.inputs: dict[str, (Input | Substack)] = {} # Filled in later
 
         for name, raw_input in data["inputs"].items():
@@ -171,6 +200,9 @@ class Block:
                 self.inputs[name] = Substack(raw_input)
             else:
                 self.inputs[name] = Input(raw_input)
+        
+        for name, raw_field in data["fields"].items():
+            self.fields[name] = Field(raw_field, name)
 
     def __str__(self) -> str:
 
@@ -186,6 +218,23 @@ class Block:
         o += f"\n\tinputs = {parsed_inputs}"
 
         return o
+
+class Branch:
+    def __init__(self, root: BlockId, blocks: dict[BlockId, Block]) -> None:
+        self._data = {"root":root, "blocks": blocks}
+        self.all_blocks = blocks
+        
+        self.branch: dict[BlockId, list[BlockId]] = {root: []}
+        
+        for bid, block in blocks.items():
+            parent = block.parent
+            if parent is None:
+                continue
+            
+            if parent in self.branch:
+                self.branch[parent].append(bid)
+                if not (bid in self.branch):
+                    self.branch[bid] = []
 
 class ProjectTarget:
     def __init__(self, data: dict) -> None:
@@ -213,12 +262,11 @@ class ProjectTarget:
         self.variables: dict[str, Variable] = {} # Y | Filled in later
         self.lists: dict[str, List] = {} # Y | Filled in later
         self.costumes: list[Costume] = [] # Y | Filled in later
-        self.blocks: dict[str, Block] = {} # Y | Filled in later
+        self.blocks: dict[BlockId, Block] = {} # Y | Filled in later
         self.sounds = [] # X | Filled in later
         self.broadcasts = {} # X | Filled in later
         
         self.comments = {} # In TODO
-
 
         for var_id in data["variables"]:
             self.variables[var_id] = Variable(data["variables"][var_id])
@@ -227,11 +275,37 @@ class ProjectTarget:
             self.lists[list_id] = List(data["lists"][list_id])
 
         for block_id in data["blocks"]:
-            self.blocks[block_id] = Block(data["blocks"][block_id])
+            self.blocks[BlockId(block_id)] = Block(data["blocks"][block_id], block_id)
 
-        # print(data["costumes"])
         for costume_id in data["costumes"]:
             self.costumes.append(Costume(costume_id, self.isStage))
+
+        self.roots = self.find_roots(self.blocks)
+        self.branches: dict[BlockId, Branch] = {
+            root: Branch(root, self.blocks) for root in self.roots
+        }
+
+    def find_roots(self, blocks: dict[BlockId, Block]):
+        start_points = set()
+
+        for id, cmd in blocks.items():
+            root = self.get_root(
+                id,
+                blocks
+            )
+            if not (root is None):
+                start_points.add(root)
+
+        return list(start_points)
+
+    def get_root(self, block_from: (BlockId | None), blocks: dict[BlockId, Block]):
+        if block_from is None:
+            return None
+        if blocks[block_from].parent is None:
+            return block_from
+        
+        root = self.get_root(blocks[block_from].parent, blocks)
+        return root
 
     def __str__(self) -> str:
         o = "Target:"

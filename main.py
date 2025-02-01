@@ -1,21 +1,6 @@
 from scratch_src import massStorage
 import scratch_src as scratch
 
-
-def get_root(block_from: (scratch.BlockId | None), blocks: dict[scratch.BlockId, scratch.Block]):
-    if block_from is None:
-        return None
-    if blocks[block_from].parent is None:
-        return block_from
-    
-    root = get_root(blocks[block_from].parent, blocks)
-    return root
-
-def tokenize_opcode(opcode: str) -> tuple[str, int]:
-    print(f"tokenizing: {opcode}")
-    module = opcode[:opcode.index('_')]
-    return module, int(massStorage.opcodes[module].index(opcode))
-
 if __name__ == "__main__":
     massStorage.load_opcodes("./assets/opcodes.json")
     project = scratch.ScratchProject(
@@ -31,8 +16,23 @@ if __name__ == "__main__":
     program = {}
 
     for name, block in blocks.items():
-        cmds[name] = (tokenize_opcode(block.opcode), block.parent.id, [i.value for i in block.inputs.values()])
+        cmds[name] = (
+            block.opcode.tokenize(), 
+            block.id,
+            [i.value for i in block.inputs.values()]
+        )
     
+    starts = sprite.roots
+    branch = sprite.branches[starts[0]]
+
+    print(scratch.list_str_all(starts))
+    print(scratch.dict_str_all(branch.branch))
+
+    for id, block in branch.branch.items():
+        print(f"Parent: {id}")
+        for i in block:
+            print(f"\tchild: {i}")
+
     tab_level = 0
     for name, cmd in cmds.items():
         
@@ -64,3 +64,26 @@ if __name__ == "__main__":
             f.write(code)
 
             f.write("\nif __name__ == \"__main__\":\n\tmain()")
+
+
+# class Queue:
+#     def __init__(self):
+#         self.queue = []
+    
+#     def is_empty(self):
+#         return len(self.queue) == 0
+
+#     def put(self, value):
+#         self.queue.append(value)
+    
+#     def pop(self):
+#         if not self.is_empty():
+#             return self.queue.pop(-1)
+        
+    
+#     def get(self):
+#         if not self.is_empty():
+#             print(f"returning: {self.queue[-1]}")
+#             return self.queue[-1]
+        
+#         return None
